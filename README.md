@@ -56,7 +56,7 @@ Some tests was made:
 
 #### Big thanks to:
 
-- ROMAN12345678901](https://4pda.to/forum/index.php?showuser=2489457) aka @mosya234
+- [ROMAN12345678901](https://4pda.to/forum/index.php?showuser=2489457) aka @mosya234
 - @lopestom
 - [TeamWin](https://github.com/TeamWin) for TWRP SC.
   * TWRP version 3.7.1_12
