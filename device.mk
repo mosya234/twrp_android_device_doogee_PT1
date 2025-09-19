@@ -1,49 +1,41 @@
+# Copyright (C) 2023 The Android Open Source Project
+# Copyright (C) 2025 TeamWin Recovery Project
 #
-# Copyright (C) 2024 The Android Open Source Project
-# Copyright (C) 2024 SebaUbuntu's TWRP device tree generator
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
-# SPDX-License-Identifier: Apache-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
-
-# Configure gsi_keys.mk
-$(call inherit-product, $(SRC_TARGET_DIR)/product/gsi_keys.mk)
-#Adds GSI keys to allow booting of GSIs with AVB
-
-# Enable updating of APEXes
-$(call inherit-product, $(SRC_TARGET_DIR)/product/updatable_apex.mk)
-
-# Enable project quotas and casefolding for emulated storage without sdcardfs - SDCard replacement functionality
-$(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
-#This sets some vendor properties, doesn't install any packages
-
-# vendor_boot
-$(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota/launch_with_vendor_ramdisk.mk)
-#Sets PRODUCT_VIRTUAL_AB_OTA to true and ro.virtual_ab.enabled=true
-#Installs linker.vendor_ramdisk, e2fsck.vendor_ramdisk and fsck.f2fs.vendor_ramdisk
-
-$(call inherit-product, $(SRC_TARGET_DIR)/product/generic_ramdisk.mk)
-#Install init_first_stage, snapuserd_ramdisk
-
-# Enabling this property, will improve OTA install time
-$(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota/compression.mk)
-
-LOCAL_PATH := device/doogee/PT1
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 # API
 PRODUCT_SHIPPING_API_LEVEL := 31
-PRODUCT_TARGET_VNDK_VERSION := 32
+PRODUCT_TARGET_VNDK_VERSION := 31
 
 # Dynamic
 PRODUCT_USE_DYNAMIC_PARTITIONS := true
 
-# A/B
-AB_OTA_UPDATER := true
+# Enable project quotas and casefolding for emulated storage without sdcardfs - SDCard replacement functionality
+$(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
 
-AB_OTA_PARTITIONS += \
-    vendor_boot \
+# Virtual A/B
+ENABLE_VIRTUAL_AB := true
+$(call inherit-product, $(SRC_TARGET_DIR)/product/virtual_ab_ota.mk)
+
+AB_OTA_UPDATER := true
+AB_OTA_PARTITIONS := \
+    boot \
     dtbo \
     system \
+    system_ext \
     product \
+    vendor_boot \
     vendor \
     vendor_dlkm \
     odm \
@@ -61,47 +53,77 @@ PRODUCT_PACKAGES += \
 
 AB_OTA_POSTINSTALL_CONFIG += \
     RUN_POSTINSTALL_system=true \
-    POSTINSTALL_PATH_system=system/bin/otapreopt_script \
+    POSTINSTALL_PATH_system=system/bin/mtk_plpath_utils \
     FILESYSTEM_TYPE_system=ext4 \
     POSTINSTALL_OPTIONAL_system=true
 
-# Bootctrl
+AB_OTA_POSTINSTALL_CONFIG += \
+    RUN_POSTINSTALL_vendor=true \
+    POSTINSTALL_PATH_vendor=bin/checkpoint_gc \
+    FILESYSTEM_TYPE_vendor=ext4 \
+    POSTINSTALL_OPTIONAL_vendor=true
+
+# Boot control HAL - Bootctrl
 PRODUCT_PACKAGES += \
     android.hardware.boot@1.2-mtkimpl \
-    android.hardware.boot@1.2-mtkimpl.recovery \
+    android.hardware.boot@1.2-mtkimpl.recovery
+
+PRODUCT_PACKAGES_DEBUG += \
     bootctrl
 
-# Health Hal
+# Build BSG - mtk
 PRODUCT_PACKAGES += \
-    android.hardware.health@2.0-impl \
-    android.hardware.health@2.0-service
+    libmtk_bsg \
+    libmtk_bsg.recovery
 
+# Fastbootd
 PRODUCT_PACKAGES += \
-    otapreopt_script \
-    cppreopts.sh
-      
-PRODUCT_PACKAGES += \
-	linker.vendor_ramdisk \
-	e2fsck.vendor_ramdisk \
-	resize2fs.vendor_ramdisk \
-	fsck.vendor_ramdisk \
-	tune2fs.vendor_ramdisk \
-
-# Fastbootd stuff
-PRODUCT_PACKAGES += \
-    android.hardware.fastboot@1.0-impl-mtk \
-    android.hardware.fastboot@1.0-impl-mtk.recovery \
-    android.hardware.fastboot@1.1-impl-mock \
-    android.hardware.fastboot@1.1-impl-mock.recovery \
+    android.hardware.fastboot@1.0-impl-mock \
+    android.hardware.fastboot@1.0-impl-mock.recovery \
     fastbootd
 
-# # Build MT-PL-Utils
- PRODUCT_PACKAGES += \
-     mtk_plpath_utils \
-     mtk_plpath_utils.recovery
+# Health
+PRODUCT_PACKAGES += \
+    android.hardware.health@2.1-impl \
+    android.hardware.health@2.1-service
+
+# Build mtk_plpath_utils
+PRODUCT_PACKAGES += \
+    mtk_plpath_utils \
+    mtk_plpath_utils.recovery
+
+# Keystore
+PRODUCT_PACKAGES += \
+    android.system.keystore2
+
+# Keymint
+PRODUCT_PACKAGES += \
+    android.hardware.security.keymint \
+    android.hardware.security.secureclock \
+    android.hardware.security.sharedsecret
+
+# Drm
+PRODUCT_PACKAGES += \
+    android.hardware.drm@1.4
+
+# Keymaster
+PRODUCT_PACKAGES += \
+    android.hardware.keymaster@4.1
+
+# Additional target Libraries
+TARGET_RECOVERY_DEVICE_MODULES += \
+    android.hardware.keymaster@4.1
+
+TW_RECOVERY_ADDITIONAL_RELINK_LIBRARY_FILES += \
+    $(TARGET_OUT_SHARED_LIBRARIES)/android.hardware.keymaster@4.1.so
+
+# libion & libxml2
+TARGET_RECOVERY_DEVICE_MODULES += libion
+
+RECOVERY_LIBRARY_SOURCE_FILES += $(TARGET_OUT_SHARED_LIBRARIES)/libion.so
 
 # Product characteristics
-PRODUCT_CHARACTERISTICS := tablet
+#PRODUCT_CHARACTERISTICS := tablet
 
 # Hide Reflash TWRP
 PRODUCT_PROPERTY_OVERRIDES += ro.twrp.vendor_boot=true
